@@ -374,14 +374,16 @@ function fitAll(){
 const fmtD = d => d ? d.replace(/^(\d{4})-(\d\d)-(\d\d)$/,(m,y,a,b)=>`${y}.${+a}.${+b}`) : '—';
 function stats(){
   const Hs=herCities(), M=cityOf(home), all=sorted();
-  const toHer = all.filter(t=>isHerCity(t.to)).length;
-  const toMe = all.filter(t=>M && isHerCity(t.from) && cityOf(t.to)===M).length;
+  // 同一天算一趟：按日期去重
+  const toHer = new Set(all.filter(t=>isHerCity(t.to)).map(t=>t.date||'')).size;
+  const toMe = new Set(all.filter(t=>M && isHerCity(t.from) && cityOf(t.to)===M).map(t=>t.date||'')).size;
   let km=0; for (const t of all){const a=coordOf(cityOf(t.from)),b=coordOf(cityOf(t.to)); if(a&&b) km+=hav(a,b);}
   $('#sHer').innerHTML = `${toHer}<small>次</small>`; $('#sHome').innerHTML = `${toMe}<small>次</small>`;
   $('#sKm').textContent = km>=10000 ? (km/10000).toFixed(1)+' 万km' : Math.round(km).toLocaleString()+' km';
   $('#sFirst').textContent = fmtD(all[0]?.date); $('#sLast').textContent = fmtD(all.at(-1)?.date);
+  const days = new Set(all.map(t=>t.date).filter(Boolean)).size;
   const cs = new Set(all.flatMap(t=>[cityOf(t.from),cityOf(t.to)]).filter(Boolean));
-  $('#sCount').textContent = `${all.length} 段行程 · ${cs.size} 座城市`;
+  $('#sCount').textContent = `${days} 趟 · ${all.length} 段 · ${cs.size} 座城市`;
   const herLabel = Hs.length ? Hs.join('、') : '';
   $('#headline').innerHTML = herLabel&&M ? `${M} <span style="color:var(--dim);font-weight:400">⇄</span> <b>${herLabel}</b>` : '来回的路';
   const pr=$('#pR'); pr.max = Math.max(0,all.length-1); if (upto<0) pr.value = pr.max; setP();
@@ -393,9 +395,9 @@ function list(){
   if (isSample) el.innerHTML = `<div class="empty" style="padding:6px 8px 10px;text-align:left">示例数据 · <a href="#" id="clrS" style="color:var(--her)">清空示例</a></div>`; else el.innerHTML='';
   const by = {}; for (const t of all){ const y=(t.date||'未知').slice(0,4); (by[y]=by[y]||[]).push(t); }
   for (const y of Object.keys(by).sort().reverse()){
-    const g=by[y], nh=g.filter(t=>isHerCity(t.to)).length;
+    const g=by[y], nh=new Set(g.filter(t=>isHerCity(t.to)).map(t=>t.date||'')).size, nd=new Set(g.map(t=>t.date).filter(Boolean)).size;
     const box=document.createElement('div'); box.className='yr'+(closedYears.has(y)?' closed':'');
-    box.innerHTML = `<div class="yh"><span><b>${y}</b>${g.length} 段${nh?` · 去她那里 ${nh} 次`:''}</span><svg class="car" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div><div class="ys"></div>`;
+    box.innerHTML = `<div class="yh"><span><b>${y}</b>${nd} 趟 / ${g.length} 段${nh?` · 去她那里 ${nh} 次`:''}</span><svg class="car" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div><div class="ys"></div>`;
     box.querySelector('.yh').onclick=()=>{box.classList.toggle('closed'); box.classList.contains('closed')?closedYears.add(y):closedYears.delete(y); localStorage.setItem('trip-map-closed',JSON.stringify([...closedYears]));};
     const ys=box.querySelector('.ys');
     for (const t of g){
