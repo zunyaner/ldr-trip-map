@@ -19,10 +19,10 @@
 
 ## 导入 CSV
 
-列：`date,from,to,note`（也可用中文表头：日期,出发,到达,备注）
+列：`date,from,to,train,note`（也可用中文表头：日期,出发,到达,备注）
 
 ```csv
-date,from,to,note
+date,from,to,train,note
 2024-05-01,上海,杭州,周末过去
 2024-08-12,北京,杭州,
 ```

@@ -2,1293 +2,522 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
-<title>行程图 — 来回路径记录</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b0d12" />
+<title>行程图 · 来回的路</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-  :root {
-    --bg: #111318;
-    --bg-soft: #181b22;
-    --bg-card: #1e222b;
-    --bg-elevated: #262b36;
-    --border: rgba(255,255,255,0.08);
-    --border-strong: rgba(255,255,255,0.18);
-    --text: #e8eaef;
-    --text-muted: #9aa3b2;
-    --text-dim: #6b7380;
-    --accent: #5b9fd4;
-    --accent-soft: #3d7aab;
-    --accent-glow: rgba(91, 159, 212, 0.25);
-    --warn: #d4a574;
-    --danger: #d47878;
-    --radius: 12px;
-    --radius-sm: 8px;
-    --shadow: 0 6px 24px rgba(0,0,0,0.35);
-    --font: "Noto Sans SC", system-ui, sans-serif;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; }
-  body {
-    font-family: var(--font);
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-  }
-  .app {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-height: 100%;
-  }
+:root{
+  --bg:#0b0d12; --glass:rgba(17,20,28,.82); --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+  --tx:#eef1f6; --mut:#98a1b3; --dim:#5f6878;
+  --her:#ff7a8a; --home:#5cc8ff; --route:#8f9cff; --gold:#ffc36b;
+  --r:16px; --font:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--font);-webkit-font-smoothing:antialiased;overflow:hidden}
+button,input,textarea{font:inherit;color:inherit}
+#map{position:fixed;inset:0;background:#0b0d12;z-index:0}
+.leaflet-container{background:#0b0d12;font-family:var(--font)}
+.leaflet-control-attribution{background:rgba(11,13,18,.6)!important;color:var(--dim)!important;font-size:10px}
+.leaflet-control-attribution a{color:var(--mut)!important}
+.leaflet-control-zoom{border:none!important;box-shadow:none!important}
+.leaflet-control-zoom a{background:var(--glass)!important;color:var(--tx)!important;border:1px solid var(--line)!important;backdrop-filter:blur(10px)}
+.glass{background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);box-shadow:0 10px 40px rgba(0,0,0,.45)}
 
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  .brand h1 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-  }
-  .brand p {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-  }
-  .header-actions {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
+/* top bar */
+.topbar{position:fixed;top:16px;right:16px;z-index:500;display:flex;gap:6px;padding:6px;border-radius:999px}
+.ib{height:34px;padding:0 14px;border-radius:999px;border:0;background:transparent;color:var(--mut);cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px;transition:.15s}
+.ib:hover{background:rgba(255,255,255,.07);color:var(--tx)}
+.ib.pri{background:linear-gradient(135deg,var(--her),#ff9f7a);color:#1a0b0e;font-weight:600}
+.ib.pri:hover{filter:brightness(1.08)}
+.ib svg{width:15px;height:15px}
 
-  .btn {
-    appearance: none;
-    border: 1px solid var(--border);
-    background: var(--bg-elevated);
-    color: var(--text);
-    font-family: inherit;
-    font-size: 0.82rem;
-    padding: 7px 12px;
-    border-radius: 999px;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    white-space: nowrap;
-  }
-  .btn:hover { border-color: var(--border-strong); background: #2e3440; }
-  .btn-primary {
-    background: var(--accent);
-    border-color: transparent;
-    color: #0c1218;
-    font-weight: 600;
-  }
-  .btn-primary:hover { background: #6aadde; }
-  .btn-ghost { background: transparent; }
-  .btn-danger { color: var(--danger); border-color: rgba(212,120,120,0.35); }
-  .btn-sm { padding: 5px 10px; font-size: 0.76rem; }
-  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+/* side panel */
+.panel{position:fixed;top:16px;left:16px;bottom:96px;width:360px;z-index:500;border-radius:22px;display:flex;flex-direction:column;overflow:hidden}
+.ph{padding:20px 20px 6px}
+.ph .eyebrow{font-size:11px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase}
+.ph h1{font-size:20px;font-weight:650;margin-top:4px;letter-spacing:.02em}
+.ph h1 b{color:var(--her);font-weight:650}
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 20px 4px}
+.hc{border-radius:14px;padding:12px 14px;background:rgba(255,255,255,.035);border:1px solid var(--line)}
+.hc .k{font-size:11.5px;color:var(--mut);display:flex;align-items:center;gap:6px}
+.hc .v{font-size:30px;font-weight:700;letter-spacing:-.02em;margin-top:2px;font-variant-numeric:tabular-nums;line-height:1.15}
+.hc .v small{font-size:13px;font-weight:500;color:var(--mut);margin-left:3px}
+.hc.her .v{color:var(--her)} .hc.home .v{color:var(--home)}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;margin:10px 20px 0;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.meta>div{padding:10px 12px;border-right:1px solid var(--line)}
+.meta>div:last-child{border-right:0}
+.meta .k{font-size:10.5px;color:var(--dim)} .meta .v{font-size:14px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cities{display:flex;gap:8px;padding:12px 20px 4px;flex-wrap:wrap}
+.chip{display:flex;align-items:center;gap:8px;padding:6px 10px 6px 8px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:12.5px;cursor:text}
+.chip input{width:64px;background:transparent;border:0;outline:0;font-weight:600}
+.chip .l{color:var(--dim);font-size:11px}
+.sec{display:flex;justify-content:space-between;align-items:center;padding:16px 20px 8px;font-size:12px;color:var(--mut)}
+.sec .a{color:var(--dim);cursor:pointer;font-size:11.5px} .sec .a:hover{color:var(--tx)}
+.list{flex:1;overflow-y:auto;padding:0 12px 14px;scrollbar-width:thin;scrollbar-color:#2a2f3a transparent}
+.yr{margin-bottom:4px}
+.yh{display:flex;justify-content:space-between;align-items:center;padding:8px 8px;cursor:pointer;font-size:12.5px;color:var(--mut);user-select:none;border-radius:10px}
+.yh:hover{background:rgba(255,255,255,.03)}
+.yh b{color:var(--tx);font-size:14px;font-weight:650;margin-right:8px}
+.yh .car{transition:.2s;opacity:.6}
+.yr.closed .car{transform:rotate(-90deg)} .yr.closed .ys{display:none}
+.it{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:9px 8px;border-radius:12px;cursor:pointer;position:relative}
+.it:hover,.it.on{background:rgba(255,255,255,.05)}
+.it .d{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums;line-height:1.25}
+.it .d b{display:block;font-size:15px;color:var(--tx);font-weight:600}
+.it .r{font-size:14px;font-weight:550;display:flex;align-items:center;gap:6px;min-width:0}
+.it .r span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it .r i{font-style:normal;color:var(--dim);font-size:12px}
+.it .s{font-size:11.5px;color:var(--dim);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{font-size:10.5px;padding:2px 7px;border-radius:999px;font-weight:600}
+.badge.her{background:rgba(255,122,138,.14);color:var(--her)} .badge.home{background:rgba(92,200,255,.14);color:var(--home)}
+.it .x{opacity:0;border:0;background:none;color:var(--dim);cursor:pointer;padding:4px 6px;border-radius:6px}
+.it:hover .x{opacity:1} .it .x:hover{color:var(--her);background:rgba(255,122,138,.1)}
+.empty{padding:40px 20px;text-align:center;color:var(--dim);font-size:13px;line-height:1.8}
 
-  .settings-bar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    padding: 10px 12px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-  }
-  .settings-bar label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.82rem;
-    color: var(--text-muted);
-  }
-  .settings-bar input {
-    width: 120px;
-    font-family: inherit;
-    font-size: 0.88rem;
-    padding: 6px 10px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border);
-    background: var(--bg);
-    color: var(--text);
-    outline: none;
-  }
-  .settings-bar input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-glow);
-  }
-  .settings-hint {
-    font-size: 0.72rem;
-    color: var(--text-dim);
-  }
+/* playback */
+.play{position:fixed;left:392px;right:16px;bottom:16px;z-index:500;border-radius:18px;padding:12px 16px;display:flex;align-items:center;gap:14px}
+.pb{width:40px;height:40px;border-radius:50%;border:0;background:var(--tx);color:#0b0d12;cursor:pointer;display:grid;place-items:center;flex:none}
+.pb svg{width:16px;height:16px}
+.pinfo{flex:none;min-width:150px}
+.pinfo .t{font-size:13.5px;font-weight:600;white-space:nowrap}
+.pinfo .s{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:4px;background:linear-gradient(90deg,var(--her) var(--p,100%),rgba(255,255,255,.12) var(--p,100%));outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,122,138,.3);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:0}
 
-  .sample-banner {
-    display: none;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 8px 12px;
-    background: rgba(91,159,212,0.08);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    flex-wrap: wrap;
-  }
-  .sample-banner.show { display: flex; }
+/* map overlays */
+.arc{transition:opacity .3s}
+.node-glow{filter:drop-shadow(0 0 6px currentColor)}
+.lbl{background:none!important;border:0!important;box-shadow:none!important;color:var(--tx)!important;font-size:12px;font-weight:600;text-shadow:0 1px 3px #000,0 0 8px #000;padding:0!important}
+.lbl:before{display:none}
+.lbl.her{color:var(--her)!important;font-size:13px} .lbl.home{color:var(--home)!important;font-size:13px}
+.lbl.minor{font-weight:500;color:var(--mut)!important;font-size:11px}
+.cnt{background:rgba(11,13,18,.85)!important;border:1px solid var(--line2)!important;color:var(--tx)!important;border-radius:999px!important;font-size:10.5px!important;font-weight:700;padding:1px 7px!important;box-shadow:none!important}
+.cnt:before{display:none}
+.leaflet-popup-content-wrapper{background:var(--glass);color:var(--tx);border-radius:14px;border:1px solid var(--line);backdrop-filter:blur(14px)}
+.leaflet-popup-tip{background:rgba(17,20,28,.9)}
+.leaflet-popup-content{margin:12px 14px;font-size:13px;line-height:1.6}
+.runner{width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.18),0 0 16px 4px rgba(255,195,107,.9)}
 
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-  }
-  .stat-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 12px 14px;
-  }
-  .stat-label {
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    margin-bottom: 4px;
-  }
-  .stat-value {
-    font-size: 1.3rem;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-  }
-  .stat-value small {
-    font-size: 0.78rem;
-    font-weight: 400;
-    color: var(--text-muted);
-    margin-left: 2px;
-  }
-  .stat-cities {
-    font-size: 0.82rem;
-    color: var(--text-muted);
-    margin-top: 4px;
-    line-height: 1.4;
-    word-break: break-all;
-  }
-  .stat-highlight .stat-value { color: var(--accent); }
+/* modal */
+.mo{position:fixed;inset:0;z-index:2000;background:rgba(5,6,10,.6);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px}
+.mo.open{display:flex}
+.md{width:min(420px,100%);border-radius:22px;padding:22px;max-height:90vh;overflow:auto}
+.md h3{font-size:17px;margin-bottom:4px} .md p{font-size:12.5px;color:var(--mut);margin-bottom:14px;line-height:1.6}
+.f{display:grid;gap:10px}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.f label{font-size:11.5px;color:var(--mut);display:grid;gap:5px}
+.f input,.f textarea{background:rgba(255,255,255,.04);border:1px solid var(--line2);border-radius:11px;padding:10px 12px;outline:0;font-size:14px}
+.f input:focus,.f textarea:focus{border-color:var(--her);box-shadow:0 0 0 3px rgba(255,122,138,.15)}
+.f textarea{min-height:60px;resize:vertical}
+.ma{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+.btn{height:38px;padding:0 16px;border-radius:999px;border:1px solid var(--line2);background:rgba(255,255,255,.04);cursor:pointer;font-size:13px}
+.btn:hover{background:rgba(255,255,255,.08)}
+.btn.pri{background:var(--tx);color:#0b0d12;border-color:transparent;font-weight:600}
+.btn.dan{color:var(--her);border-color:rgba(255,122,138,.3)}
+pre.code{background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:11.5px;color:var(--gold);overflow:auto;margin-bottom:12px}
+.drop{border:1.5px dashed var(--line2);border-radius:14px;padding:22px;text-align:center;color:var(--mut);font-size:13px;cursor:pointer}
+.drop:hover,.drop.hov{border-color:var(--her);color:var(--tx)}
+.toast{position:fixed;left:50%;top:20px;transform:translateX(-50%);z-index:3000;padding:10px 18px;border-radius:999px;font-size:13px;pointer-events:none;animation:tin .25s}
+@keyframes tin{from{opacity:0;transform:translate(-50%,-8px)}}
+.geo{position:fixed;top:70px;right:16px;z-index:600;padding:8px 14px;border-radius:999px;font-size:12px;color:var(--mut);display:none}
+.geo.on{display:block}
+.grab{display:none}
 
-  .main {
-    display: grid;
-    grid-template-columns: 1fr 340px;
-    gap: 12px;
-    flex: 1;
-    min-height: 0;
-  }
-  .map-panel {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    min-height: 400px;
-    box-shadow: var(--shadow);
-  }
-  #map {
-    flex: 1;
-    min-height: 400px;
-    background: #151820;
-  }
-  .map-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 8px 12px;
-    border-top: 1px solid var(--border);
-    background: var(--bg-soft);
-    flex-wrap: wrap;
-  }
-  .map-hint { font-size: 0.7rem; color: var(--text-dim); }
-
-  .geocode-bar {
-    display: none;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 12px;
-    background: rgba(91,159,212,0.1);
-    border-bottom: 1px solid var(--border);
-    font-size: 0.76rem;
-    color: var(--accent);
-  }
-  .geocode-bar.show { display: flex; }
-  .spinner {
-    width: 12px; height: 12px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .side {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    min-height: 0;
-    max-height: calc(100vh - 200px);
-  }
-  .panel {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-  .panel-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-soft);
-  }
-  .panel-head h2 { font-size: 0.88rem; font-weight: 600; }
-  .panel-body { padding: 12px; overflow-y: auto; flex: 1; }
-
-  .timeline-panel { flex: 1; min-height: 180px; }
-  .timeline { list-style: none; display: flex; flex-direction: column; gap: 6px; }
-  .trip-card {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 10px 12px;
-    cursor: pointer;
-    transition: border-color 0.15s;
-    position: relative;
-  }
-  .trip-card:hover, .trip-card.active {
-    border-color: var(--accent);
-  }
-  .trip-card.to-her {
-    border-left: 3px solid var(--accent);
-  }
-  .trip-date {
-    font-size: 0.7rem;
-    color: var(--text-dim);
-    margin-bottom: 2px;
-  }
-  .trip-route {
-    font-size: 0.9rem;
-    font-weight: 500;
-  }
-  .trip-note {
-    font-size: 0.76rem;
-    color: var(--text-muted);
-    margin-top: 4px;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .trip-actions {
-    position: absolute;
-    top: 6px; right: 6px;
-    display: flex;
-    gap: 4px;
-    opacity: 0;
-  }
-  .trip-card:hover .trip-actions { opacity: 1; }
-  .icon-btn {
-    width: 26px; height: 26px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: var(--bg-card);
-    color: var(--text-muted);
-    cursor: pointer;
-    display: grid; place-items: center;
-    font-size: 12px;
-  }
-  .icon-btn:hover { color: var(--danger); border-color: var(--danger); }
-  .empty-state {
-    text-align: center;
-    padding: 28px 12px;
-    color: var(--text-dim);
-    font-size: 0.84rem;
-  }
-
-  .form-grid { display: grid; gap: 10px; }
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  label.field {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    font-size: 0.74rem;
-    color: var(--text-muted);
-  }
-  label.field.full { grid-column: 1 / -1; }
-  input, textarea {
-    font-family: inherit;
-    font-size: 0.88rem;
-    padding: 8px 10px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border);
-    background: var(--bg);
-    color: var(--text);
-    outline: none;
-  }
-  input:focus, textarea:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-glow);
-  }
-  textarea { resize: vertical; min-height: 56px; }
-  .form-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-
-  .toast-wrap {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    pointer-events: none;
-  }
-  .toast {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-strong);
-    color: var(--text);
-    padding: 9px 16px;
-    border-radius: 999px;
-    font-size: 0.84rem;
-    box-shadow: var(--shadow);
-    animation: toastIn 0.25s ease;
-  }
-  @keyframes toastIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(8,10,14,0.7);
-    backdrop-filter: blur(4px);
-    z-index: 8000;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-  }
-  .modal-overlay.open { display: flex; }
-  .modal {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    width: min(440px, 100%);
-    max-height: 90vh;
-    overflow-y: auto;
-    padding: 20px;
-    box-shadow: var(--shadow);
-  }
-  .modal h3 { font-size: 1.1rem; margin-bottom: 6px; }
-  .modal p { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px; }
-  .modal-actions {
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-    margin-top: 14px;
-    flex-wrap: wrap;
-  }
-  .code-block {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 10px;
-    font-family: ui-monospace, monospace;
-    font-size: 0.72rem;
-    color: var(--warn);
-    overflow-x: auto;
-    white-space: pre;
-    margin: 8px 0;
-  }
-
-  .leaflet-container { background: #151820; font-family: var(--font); }
-  .leaflet-popup-content-wrapper {
-    background: var(--bg-card);
-    color: var(--text);
-    border-radius: 10px;
-    border: 1px solid var(--border);
-  }
-  .leaflet-popup-tip { background: var(--bg-card); }
-  .leaflet-popup-content { margin: 10px 12px; font-size: 0.84rem; }
-  .leaflet-popup-close-button { color: var(--text-muted) !important; }
-  .custom-pin { background: transparent; border: none; }
-  .pin-dot {
-    width: 26px; height: 26px;
-    border-radius: 50% 50% 50% 0;
-    background: var(--accent);
-    transform: rotate(-45deg);
-    box-shadow: 0 2px 10px var(--accent-glow);
-    border: 2px solid rgba(255,255,255,0.85);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .pin-dot span {
-    transform: rotate(45deg);
-    font-size: 10px;
-    color: #0c1218;
-    font-weight: 700;
-  }
-  .pin-dot.her-pin { background: #d4a574; }
-
-  footer {
-    text-align: center;
-    font-size: 0.68rem;
-    color: var(--text-dim);
-    padding: 6px;
-  }
-
-  @media (max-width: 900px) {
-    .main { grid-template-columns: 1fr; }
-    .side { max-height: none; }
-    .stats { grid-template-columns: 1fr; }
-    #map, .map-panel { min-height: 300px; }
-    .trip-actions { opacity: 1; }
-  }
-  @media (max-width: 480px) {
-    .app { padding: 10px; }
-    .form-row { grid-template-columns: 1fr; }
-    .stats { grid-template-columns: 1fr; }
-  }
+/* mobile */
+@media (max-width:760px){
+  .topbar{top:auto;bottom:auto;top:max(10px,env(safe-area-inset-top));right:10px;left:10px;justify-content:space-between}
+  .topbar .lbl-t{display:none}
+  .ib{padding:0 11px}
+  .panel{top:auto;left:0;right:0;bottom:0;width:auto;border-radius:22px 22px 0 0;height:var(--sh,42vh);transition:height .3s cubic-bezier(.2,.8,.2,1);padding-bottom:env(safe-area-inset-bottom)}
+  .panel.full{--sh:86vh} .panel.mini{--sh:178px}
+  .grab{display:block;padding:8px 0 0;cursor:grab;touch-action:none}
+  .grab i{display:block;width:38px;height:5px;border-radius:5px;background:rgba(255,255,255,.22);margin:0 auto}
+  .ph{padding:6px 18px 0}
+  .ph .eyebrow{display:none}
+  .ph h1{font-size:16px}
+  .hero{padding:10px 16px 0;gap:8px}
+  .hc{padding:10px 12px} .hc .v{font-size:24px}
+  .meta{margin:8px 16px 0} .cities{padding:10px 16px 0} .sec{padding:12px 18px 6px}
+  .play{left:10px;right:10px;bottom:calc(var(--sh,42vh) + 10px);padding:8px 12px;gap:10px;transition:bottom .3s cubic-bezier(.2,.8,.2,1)}
+  .panel.full~.play{display:none}
+  .pb{width:34px;height:34px} .pinfo{min-width:0;flex:1} input[type=range]{flex:1.3}
+  .it .x{opacity:1}
+  .leaflet-control-zoom{display:none}
+  .geo{top:60px}
+}
 </style>
 </head>
 <body>
-<div class="app">
-  <header>
-    <div class="brand">
-      <h1>行程图</h1>
-      <p>记录来回路径 · 去了她的城市多少次</p>
-    </div>
-    <div class="header-actions">
-      <button class="btn btn-ghost btn-sm" id="btnImport">导入</button>
-      <button class="btn btn-ghost btn-sm" id="btnExport">导出</button>
-      <button class="btn btn-ghost btn-sm" id="btnTemplate">模板</button>
-      <button class="btn btn-danger btn-sm" id="btnClear">清空</button>
-      <button class="btn btn-primary btn-sm" id="btnAdd">＋ 添加行程</button>
-    </div>
-  </header>
+<div id="map"></div>
 
-  <div class="settings-bar">
-    <label>
-      她的城市
-      <input type="text" id="herCity" placeholder="如：杭州" autocomplete="off" />
-    </label>
-    <span class="settings-hint">统计「去过她那里」时，按到达城市（to）匹配</span>
-  </div>
-
-  <div class="sample-banner" id="sampleBanner">
-    <span>当前为示例数据，可清空后导入自己的行程。</span>
-    <button class="btn btn-sm" id="btnClearSample">清空示例</button>
-  </div>
-
-  <section class="stats">
-    <div class="stat-card stat-highlight">
-      <div class="stat-label">去过她那里</div>
-      <div class="stat-value" id="statHer">0<small>次</small></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">出行总次数</div>
-      <div class="stat-value" id="statTotal">0</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">涉及城市</div>
-      <div class="stat-value" id="statCityCount">0</div>
-      <div class="stat-cities" id="statCityList">—</div>
-    </div>
-  </section>
-
-  <div class="main">
-    <div class="map-panel">
-      <div class="geocode-bar" id="geocodeBar">
-        <div class="spinner"></div>
-        <span id="geocodeText">正在解析城市坐标…</span>
-      </div>
-      <div id="map"></div>
-      <div class="map-toolbar">
-        <span class="map-hint">点击列表可定位 · 每条行程 from → to 连线</span>
-        <button class="btn btn-sm btn-ghost" id="btnFit">适应全部</button>
-      </div>
-    </div>
-
-    <aside class="side">
-      <div class="panel" id="formPanel" style="display:none">
-        <div class="panel-head">
-          <h2 id="formTitle">添加行程</h2>
-          <button class="btn btn-ghost btn-sm" id="btnCancelForm">关闭</button>
-        </div>
-        <div class="panel-body">
-          <form id="tripForm" class="form-grid" autocomplete="off">
-            <input type="hidden" id="editId" />
-            <label class="field">
-              日期 *
-              <input type="date" id="fDate" required />
-            </label>
-            <div class="form-row">
-              <label class="field">
-                出发城市 *
-                <input type="text" id="fFrom" placeholder="如：上海" required />
-              </label>
-              <label class="field">
-                到达城市 *
-                <input type="text" id="fTo" placeholder="如：杭州" required />
-              </label>
-            </div>
-            <label class="field full">
-              备注（可选）
-              <textarea id="fNote" placeholder="可选"></textarea>
-            </label>
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary">保存</button>
-              <button type="button" class="btn btn-ghost" id="btnCancelForm2">取消</button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <div class="panel timeline-panel">
-        <div class="panel-head">
-          <h2>行程列表</h2>
-          <span style="font-size:0.74rem;color:var(--text-dim)" id="tripCount">0 条</span>
-        </div>
-        <div class="panel-body">
-          <ul class="timeline" id="timeline"></ul>
-        </div>
-      </div>
-    </aside>
-  </div>
-
-  <footer>数据仅保存在本机浏览器 · 地图 © OpenStreetMap</footer>
+<div class="topbar glass">
+  <button class="ib" id="bImp" title="导入"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg><span class="lbl-t">导入</span></button>
+  <button class="ib" id="bExp" title="导出"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 15V3m0 0L8 7m4-4l4 4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg><span class="lbl-t">导出</span></button>
+  <button class="ib" id="bFit" title="全览"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="lbl-t">全览</span></button>
+  <button class="ib pri" id="bAdd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>记一程</button>
 </div>
 
-<div class="toast-wrap" id="toasts"></div>
-
-<div class="modal-overlay" id="importModal">
-  <div class="modal">
-    <h3>导入 CSV / JSON</h3>
-    <p>列：date, from, to, note。导入后自动补全坐标。</p>
-    <div class="code-block">date,from,to,note
-2024-05-01,上海,杭州,周末过去
-2024-08-12,北京,杭州,</div>
-    <input type="file" id="fileInput" accept=".csv,.json,text/csv,application/json" style="width:100%;margin:8px 0;color:var(--text-muted)" />
-    <div class="modal-actions">
-      <button class="btn btn-ghost" id="btnImportCancel">取消</button>
-      <button class="btn btn-primary" id="btnImportDo" disabled>开始导入</button>
-    </div>
+<aside class="panel glass" id="panel">
+  <div class="grab" id="grab"><i></i></div>
+  <div class="ph">
+    <div class="eyebrow">Our Routes</div>
+    <h1 id="headline">来回的路</h1>
   </div>
+  <div class="hero">
+    <div class="hc her"><div class="k"><span class="dot" style="background:var(--her)"></span>去她那里</div><div class="v" id="sHer">0<small>次</small></div></div>
+    <div class="hc home"><div class="k"><span class="dot" style="background:var(--home)"></span>她来我这</div><div class="v" id="sHome">0<small>次</small></div></div>
+  </div>
+  <div class="meta">
+    <div><div class="k">总里程约</div><div class="v" id="sKm">0 km</div></div>
+    <div><div class="k">第一次</div><div class="v" id="sFirst">—</div></div>
+    <div><div class="k">最近一次</div><div class="v" id="sLast">—</div></div>
+  </div>
+  <div class="cities">
+    <label class="chip"><span class="dot" style="background:var(--home)"></span><span class="l">我的城市</span><input id="cHome" placeholder="上海" /></label>
+    <label class="chip"><span class="dot" style="background:var(--her)"></span><span class="l">她的城市</span><input id="cHer" placeholder="杭州" /></label>
+  </div>
+  <div class="sec"><span id="sCount">0 段行程 · 0 座城市</span><span class="a" id="bClear">清空</span></div>
+  <div class="list" id="list"></div>
+</aside>
+
+<div class="play glass" id="play">
+  <button class="pb" id="pBtn" aria-label="回放"><svg id="pIco" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg></button>
+  <div class="pinfo"><div class="t" id="pT">全部行程</div><div class="s" id="pS">拖动回放</div></div>
+  <input type="range" id="pR" min="0" max="0" value="0" />
 </div>
 
-<div class="modal-overlay" id="exportModal">
-  <div class="modal">
-    <h3>导出</h3>
-    <p>下载当前全部行程。</p>
-    <div class="modal-actions" style="justify-content:center">
-      <button class="btn btn-primary" id="btnExportCsv">CSV</button>
-      <button class="btn" id="btnExportJson">JSON</button>
-      <button class="btn btn-ghost" id="btnExportCancel">取消</button>
-    </div>
-  </div>
-</div>
+<div class="geo glass" id="geo">解析城市…</div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<div class="mo" id="mAdd"><div class="md glass">
+  <h3 id="aTitle">记一程</h3><p>车站名会自动归到城市，例如「杭州东」→ 杭州。</p>
+  <form class="f" id="fAdd" autocomplete="off">
+    <input type="hidden" id="fId" />
+    <div class="f2"><label>日期<input type="date" id="fDate" required /></label><label>车次（可选）<input id="fTrain" placeholder="G7311" /></label></div>
+    <div class="f2"><label>出发<input id="fFrom" required placeholder="上海虹桥" /></label><label>到达<input id="fTo" required placeholder="杭州东" /></label></div>
+    <label>备注<textarea id="fNote" placeholder="可选"></textarea></label>
+    <div class="ma"><button type="button" class="btn" data-close>取消</button><button type="button" class="btn" id="fSwap">⇄ 反向</button><button class="btn pri">保存</button></div>
+  </form>
+</div></div>
+
+<div class="mo" id="mImp"><div class="md glass">
+  <h3>导入行程</h3><p>CSV 或 JSON。列：<b>date, from, to, train, note</b>（train、note 可空；也支持中文表头 日期/出发/到达/车次/备注，及 12306 的「出发站/到达站」）。</p>
+  <pre class="code">date,from,to,train,note
+2025-03-14,上海虹桥,杭州东,G7311,
+2025-03-16,杭州东,上海虹桥,G7368,</pre>
+  <div class="drop" id="drop">点击选择或拖入文件</div>
+  <input type="file" id="file" accept=".csv,.json,text/csv,application/json" hidden />
+  <div class="ma"><button class="btn" id="bTpl">下载模板</button><button class="btn" data-close>关闭</button></div>
+</div></div>
+
+<div class="mo" id="mExp"><div class="md glass">
+  <h3>导出</h3><p>备份当前全部行程与城市设置。</p>
+  <div class="ma" style="justify-content:flex-start"><button class="btn pri" id="eCsv">CSV</button><button class="btn" id="eJson">JSON</button><button class="btn" data-close>关闭</button></div>
+</div></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="cities.js"></script>
 <script>
-(function () {
-  'use strict';
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const K = { data: 'trip-map-v3', home: 'trip-map-home', her: 'trip-map-her', geo: 'trip-map-geo', sample: 'trip-map-sample' };
 
-  const STORAGE_KEY = 'ldr-trip-map-v2';
-  const GEO_CACHE_KEY = 'ldr-trip-map-geo-cache';
-  const SAMPLE_FLAG = 'ldr-trip-map-is-sample-v2';
-  const HER_CITY_KEY = 'ldr-trip-map-her-city';
-  const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
+const SAMPLE = [
+  ['2025-01-24','上海虹桥','杭州东','G7311',''],['2025-01-26','杭州东','上海虹桥','G7368',''],
+  ['2025-02-14','上海虹桥','杭州东','G7501','情人节'],['2025-02-16','杭州东','上海虹桥','G7586',''],
+  ['2025-03-08','杭州东','上海虹桥','G7380','她来上海'],['2025-03-10','上海虹桥','杭州东','G7319',''],
+  ['2025-04-04','上海虹桥','杭州东','G7337','清明'],['2025-04-06','杭州东','上海虹桥','G7390',''],
+  ['2025-05-01','上海虹桥','成都东','G1974','一起去成都'],['2025-05-05','成都东','杭州东','G1972',''],['2025-05-05','杭州东','上海虹桥','G7552',''],
+  ['2025-06-20','杭州东','上海虹桥','G7356',''],['2025-06-22','上海虹桥','杭州东','G7343',''],
+  ['2025-08-09','上海虹桥','杭州东','G7525',''],['2025-08-10','杭州东','厦门北','G1653','海边'],['2025-08-14','厦门北','上海虹桥','G1658',''],
+  ['2025-10-01','上海虹桥','北京南','G2','国庆北京'],['2025-10-05','北京南','杭州东','G35',''],['2025-10-06','杭州东','上海虹桥','G7360',''],
+  ['2025-12-31','上海虹桥','杭州东','G7511','跨年'],['2026-01-02','杭州东','上海虹桥','G7588',''],
+  ['2026-03-21','杭州东','上海虹桥','G7372',''],['2026-03-23','上海虹桥','杭州东','G7323',''],
+  ['2026-05-01','上海虹桥','西安北','G1912','五一西安'],['2026-05-04','西安北','杭州东','G1916',''],['2026-05-05','杭州东','上海虹桥','G7356',''],
+  ['2026-09-26','上海虹桥','杭州东','G7517','']
+].map((r,i)=>({id:'s'+i,date:r[0],from:r[1],to:r[2],train:r[3],note:r[4]}));
 
-  const DEMO = [
-    {
-      id: 'demo-1',
-      date: '2024-02-14',
-      from: '上海',
-      to: '杭州',
-      note: '周末过去',
-      fromCoords: [31.2304, 121.4737],
-      toCoords: [30.2741, 120.1551]
-    },
-    {
-      id: 'demo-2',
-      date: '2024-06-08',
-      from: '北京',
-      to: '杭州',
-      note: '',
-      fromCoords: [39.9042, 116.4074],
-      toCoords: [30.2741, 120.1551]
-    },
-    {
-      id: 'demo-3',
-      date: '2024-10-01',
-      from: '杭州',
-      to: '成都',
-      note: '一起出去玩',
-      fromCoords: [30.2741, 120.1551],
-      toCoords: [30.5728, 104.0668]
+let trips = [], home = '', her = '', isSample = false, geoCache = {};
+try { geoCache = JSON.parse(localStorage.getItem(K.geo) || '{}'); } catch(e) {}
+
+/* ---------- city resolution ---------- */
+const C = window.CN_CITIES, ST = window.CN_STATIONS;
+const cityNames = Object.keys(C).sort((a,b)=>b.length-a.length);
+function cityOf(raw) {
+  let s = String(raw||'').trim().replace(/\s+/g,'').replace(/(火车站|高铁站|站)$/,'');
+  if (!s) return '';
+  if (ST[s]) return ST[s];
+  if (C[s]) return s;
+  const s2 = s.replace(/(市|东|西|南|北|虹桥|朝阳|丰台|龙门|园区|新区|机场)$/,'');
+  if (C[s2]) return s2;
+  for (const n of cityNames) if (s.startsWith(n)) return n;
+  return s;
+}
+const norm = s => cityOf(s);
+function coordOf(city) { return C[city] || geoCache[city] || null; }
+
+let lastNom = 0;
+async function nominatim(city) {
+  const w = Math.max(0, 1100 - (Date.now() - lastNom)); if (w) await new Promise(r=>setTimeout(r,w)); lastNom = Date.now();
+  try {
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=cn&accept-language=zh&q=' + encodeURIComponent(city));
+    const d = await r.json(); if (d[0]) { geoCache[city] = [+d[0].lat, +d[0].lon]; localStorage.setItem(K.geo, JSON.stringify(geoCache)); return true; }
+  } catch(e) {}
+  return false;
+}
+async function resolveUnknown() {
+  const miss = [...new Set(trips.flatMap(t=>[cityOf(t.from),cityOf(t.to)]))].filter(c=>c && !coordOf(c));
+  if (!miss.length) return;
+  const g = $('#geo'); g.classList.add('on');
+  for (let i=0;i<miss.length;i++){ g.textContent = `在线解析 ${miss[i]}（${i+1}/${miss.length}）`; await nominatim(miss[i]); }
+  g.classList.remove('on'); render(true);
+}
+
+/* ---------- storage ---------- */
+function load() {
+  home = localStorage.getItem(K.home) ?? '上海';
+  her = localStorage.getItem(K.her) ?? '杭州';
+  const raw = localStorage.getItem(K.data);
+  if (raw) { try { trips = JSON.parse(raw); isSample = localStorage.getItem(K.sample)==='1'; return; } catch(e){} }
+  for (const old of ['ldr-trip-map-v2','ldr-trip-map-v1']) {
+    try { const o = JSON.parse(localStorage.getItem(old)||'null'); if (o && o.length) {
+      trips = o.filter(t=>t.from&&t.to).map(t=>({id:t.id||uid(),date:t.date||'',from:t.from,to:t.to,train:'',note:t.note||''}));
+      if (trips.length) { save(); return; } } } catch(e){}
+  }
+  trips = SAMPLE.map(t=>({...t})); isSample = true; save();
+}
+function save() {
+  localStorage.setItem(K.data, JSON.stringify(trips));
+  localStorage.setItem(K.home, home); localStorage.setItem(K.her, her);
+  localStorage.setItem(K.sample, isSample?'1':'0');
+}
+const uid = () => 't'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const sorted = () => [...trips].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+
+/* ---------- geo math ---------- */
+function hav(a,b){const R=6371,r=Math.PI/180,dl=(b[0]-a[0])*r,dg=(b[1]-a[1])*r;const x=Math.sin(dl/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(x));}
+function arcPts(a,b,bend=0.22,n=64){
+  const [y1,x1]=a,[y2,x2]=b, mx=(x1+x2)/2, my=(y1+y2)/2, dx=x2-x1, dy=y2-y1;
+  const cx = mx - dy*bend, cy = my + dx*bend; const out=[];
+  for(let i=0;i<=n;i++){const t=i/n,u=1-t;out.push([u*u*y1+2*u*t*cy+t*t*y2,u*u*x1+2*u*t*cx+t*t*x2]);}
+  return out;
+}
+
+/* ---------- map ---------- */
+const map = L.map('map',{zoomControl:false,attributionControl:true,worldCopyJump:false,zoomSnap:.25,minZoom:3}).setView([33,112],5);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:16,attribution:'Tiles © Esri'}).addTo(map);
+const arcL = L.layerGroup().addTo(map), nodeL = L.layerGroup().addTo(map), fxL = L.layerGroup().addTo(map);
+const isMobile = () => matchMedia('(max-width:760px)').matches;
+
+function fitPad(){ return isMobile() ? {paddingTopLeft:[40,100],paddingBottomRight:[50,(innerHeight*0.42)+90]} : {paddingTopLeft:[410,100],paddingBottomRight:[60,110]}; }
+
+let upto = -1; // playback index; -1 = all
+function visible(){ const s=sorted(); return upto<0 ? s : s.slice(0,upto+1); }
+
+function render(fit){
+  arcL.clearLayers(); nodeL.clearLayers();
+  const vt = visible(), H = cityOf(her), M = cityOf(home);
+  const routes = new Map(), visits = new Map();
+  for (const t of vt) {
+    const a=cityOf(t.from), b=cityOf(t.to); if(!a||!b||a===b) continue;
+    const pa=coordOf(a), pb=coordOf(b); if(!pa||!pb) continue;
+    const key=[a,b].sort().join('|');
+    const r = routes.get(key) || {a:[a,pa],b:[b,pb],n:0,ab:0,ba:0,her:false};
+    r.n++; (a<b? r.ab++ : r.ba++); if (b===H||a===H) r.her = r.her || ((a===M||b===M));
+    routes.set(key,r);
+    for (const c of [[a,pa],[b,pb]]) { const v=visits.get(c[0])||{p:c[1],n:0}; v.n++; visits.set(c[0],v); }
+  }
+  const maxN = Math.max(1,...[...routes.values()].map(r=>r.n));
+  for (const r of routes.values()) {
+    const [ca,pa]=r.a,[cb,pb]=r.b; const pts = arcPts(pa,pb, .2);
+    const w = 1.4 + 4.6*Math.sqrt(r.n/maxN), op = .35 + .55*(r.n/maxN);
+    const col = r.her ? '#ff7a8a' : '#8f9cff';
+    L.polyline(pts,{color:col,weight:w+8,opacity:op*.12,interactive:false,lineCap:'round'}).addTo(arcL);
+    const pl = L.polyline(pts,{color:col,weight:w,opacity:op,lineCap:'round',className:'arc'}).addTo(arcL);
+    pl.bindPopup(`<b>${ca} ⇄ ${cb}</b><br>共 ${r.n} 次 · 约 ${Math.round(hav(pa,pb))} km`);
+    if (r.n>1) { const mid=pts[32]; L.marker(mid,{opacity:0,interactive:false}).bindTooltip('×'+r.n,{permanent:true,direction:'center',className:'cnt'}).addTo(arcL); }
+  }
+  const maxV = Math.max(1,...[...visits.values()].map(v=>v.n));
+  for (const [c,v] of visits) {
+    const isH=c===H, isM=c===M, col = isH?'#ff7a8a':isM?'#5cc8ff':'#ffc36b';
+    const rad = 4 + 8*Math.sqrt(v.n/maxV);
+    L.circleMarker(v.p,{radius:rad*2.4,stroke:false,fillColor:col,fillOpacity:.1,interactive:false}).addTo(nodeL);
+    L.circleMarker(v.p,{radius:rad*1.5,stroke:false,fillColor:col,fillOpacity:.18,interactive:false}).addTo(nodeL);
+    const m = L.circleMarker(v.p,{radius:rad,color:'#fff',weight:1.5,opacity:.9,fillColor:col,fillOpacity:1}).addTo(nodeL);
+    m.bindPopup(`<b>${c}</b>${isH?' · 她的城市':isM?' · 我的城市':''}<br>到过 / 出发 ${v.n} 次`);
+    m.bindTooltip(c + (isH||isM?'':` ${v.n}`),{permanent:true,direction:isH?'right':isM?'right':'top',offset:isH||isM?[rad+4,0]:[0,-rad-2],className:'lbl'+(isH?' her':isM?' home':' minor')});
+  }
+  stats(); list();
+  if (fit) fitAll();
+}
+function fitAll(){
+  const pts=[]; for (const t of trips){ const a=coordOf(cityOf(t.from)), b=coordOf(cityOf(t.to)); a&&pts.push(a); b&&pts.push(b); }
+  if (pts.length) map.flyToBounds(L.latLngBounds(pts),{...fitPad(),maxZoom:8,duration:.6});
+}
+
+/* ---------- stats & list ---------- */
+const fmtD = d => d ? d.replace(/^(\d{4})-(\d\d)-(\d\d)$/,(m,y,a,b)=>`${y}.${+a}.${+b}`) : '—';
+function stats(){
+  const H=cityOf(her), M=cityOf(home), all=sorted();
+  const toHer = all.filter(t=>cityOf(t.to)===H && H).length, toMe = all.filter(t=>cityOf(t.to)===M && M && cityOf(t.from)===H).length;
+  let km=0; for (const t of all){const a=coordOf(cityOf(t.from)),b=coordOf(cityOf(t.to)); if(a&&b) km+=hav(a,b);}
+  $('#sHer').innerHTML = `${toHer}<small>次</small>`; $('#sHome').innerHTML = `${toMe}<small>次</small>`;
+  $('#sKm').textContent = km>=10000 ? (km/10000).toFixed(1)+' 万km' : Math.round(km).toLocaleString()+' km';
+  $('#sFirst').textContent = fmtD(all[0]?.date); $('#sLast').textContent = fmtD(all.at(-1)?.date);
+  const cs = new Set(all.flatMap(t=>[cityOf(t.from),cityOf(t.to)]).filter(Boolean));
+  $('#sCount').textContent = `${all.length} 段行程 · ${cs.size} 座城市`;
+  $('#headline').innerHTML = H&&M ? `${M} <span style="color:var(--dim);font-weight:400">⇄</span> <b>${H}</b>` : '来回的路';
+  const pr=$('#pR'); pr.max = Math.max(0,all.length-1); if (upto<0) pr.value = pr.max; setP();
+}
+const closedYears = new Set(JSON.parse(localStorage.getItem('trip-map-closed')||'[]'));
+function list(){
+  const H=cityOf(her), M=cityOf(home), all=sorted().reverse(), el=$('#list');
+  if (!all.length){ el.innerHTML='<div class="empty">还没有行程<br>点右上角「记一程」或导入 12306 记录</div>'; return; }
+  if (isSample) el.innerHTML = `<div class="empty" style="padding:6px 8px 10px;text-align:left">示例数据 · <a href="#" id="clrS" style="color:var(--her)">清空示例</a></div>`; else el.innerHTML='';
+  const by = {}; for (const t of all){ const y=(t.date||'未知').slice(0,4); (by[y]=by[y]||[]).push(t); }
+  for (const y of Object.keys(by).sort().reverse()){
+    const g=by[y], nh=g.filter(t=>cityOf(t.to)===H).length;
+    const box=document.createElement('div'); box.className='yr'+(closedYears.has(y)?' closed':'');
+    box.innerHTML = `<div class="yh"><span><b>${y}</b>${g.length} 段${nh?` · 去她那里 ${nh} 次`:''}</span><svg class="car" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div><div class="ys"></div>`;
+    box.querySelector('.yh').onclick=()=>{box.classList.toggle('closed'); box.classList.contains('closed')?closedYears.add(y):closedYears.delete(y); localStorage.setItem('trip-map-closed',JSON.stringify([...closedYears]));};
+    const ys=box.querySelector('.ys');
+    for (const t of g){
+      const a=cityOf(t.from), b=cityOf(t.to), d=(t.date||'').slice(5).split('-');
+      const tag = b===H ? '<span class="badge her">去她那</span>' : (b===M && a===H) ? '<span class="badge home">她来</span>' : '';
+      const sub = [t.train, (t.from!==a||t.to!==b)?`${t.from} → ${t.to}`:'', t.note].filter(Boolean).join(' · ');
+      const it=document.createElement('div'); it.className='it';
+      it.innerHTML = `<div class="d"><b>${d[1]?+d[1]:''}</b>${d[0]?+d[0]+'月':''}</div><div style="min-width:0"><div class="r"><span>${esc(a)}</span><i>→</i><span>${esc(b)}</span>${tag}</div>${sub?`<div class="s">${esc(sub)}</div>`:''}</div><button class="x" title="删除">✕</button>`;
+      it.onclick=e=>{ if(e.target.closest('.x')) return; focus(t); document.querySelectorAll('.it.on').forEach(x=>x.classList.remove('on')); it.classList.add('on'); };
+      it.ondblclick=()=>openAdd(t);
+      it.querySelector('.x').onclick=e=>{e.stopPropagation(); if(confirm(`删除 ${t.date} ${a}→${b}？`)){trips=trips.filter(x=>x!==t); isSample=false; save(); render();}};
+      ys.appendChild(it);
     }
-  ];
-
-  let trips = [];
-  let isSample = false;
-  let herCity = '';
-  let map, markersLayer, linesLayer;
-  let activeId = null;
-  let pendingFile = null;
-  let lastGeocodeAt = 0;
-
-  function uid() {
-    return 't-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
+    el.appendChild(box);
   }
-  function todayStr() {
-    return new Date().toISOString().slice(0, 10);
-  }
-  function toast(msg, ms) {
-    const el = document.createElement('div');
-    el.className = 'toast';
-    el.textContent = msg;
-    document.getElementById('toasts').appendChild(el);
-    setTimeout(() => el.remove(), ms || 2600);
-  }
-  function escapeHtml(str) {
-    return String(str || '')
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-  function normCity(s) {
-    return String(s || '').trim().toLowerCase().replace(/\s+/g, '');
-  }
-  function formatDateCN(s) {
-    if (!s) return '—';
-    const d = new Date(s + 'T12:00:00');
-    if (isNaN(d.getTime())) return s;
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  }
-  function isToHer(trip) {
-    if (!herCity || !trip.to) return false;
-    return normCity(trip.to) === normCity(herCity);
-  }
+  const c=$('#clrS'); if(c) c.onclick=e=>{e.preventDefault(); if(confirm('清空示例数据？')){trips=[];isSample=false;save();render();}};
+}
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-  function loadGeoCache() {
-    try { return JSON.parse(localStorage.getItem(GEO_CACHE_KEY) || '{}'); }
-    catch (e) { return {}; }
-  }
-  function saveGeoCache(cache) {
-    localStorage.setItem(GEO_CACHE_KEY, JSON.stringify(cache));
-  }
+/* ---------- runner animation ---------- */
+let anim=null;
+function runAlong(t, ms=1400){
+  fxL.clearLayers(); if(anim) cancelAnimationFrame(anim);
+  const a=coordOf(cityOf(t.from)), b=coordOf(cityOf(t.to)); if(!a||!b) return Promise.resolve();
+  const pts=arcPts(a,b,.2,120), trail=L.polyline([],{color:'#ffc36b',weight:3,opacity:.95,lineCap:'round'}).addTo(fxL);
+  const dot=L.marker(a,{icon:L.divIcon({className:'',html:'<div class="runner"></div>',iconSize:[10,10],iconAnchor:[5,5]}),interactive:false}).addTo(fxL);
+  return new Promise(res=>{ const t0=performance.now();
+    const step=now=>{ const p=Math.min(1,(now-t0)/ms), e=p<.5?2*p*p:1-(-2*p+2)**2/2, i=Math.round(e*120);
+      dot.setLatLng(pts[i]); trail.setLatLngs(pts.slice(Math.max(0,i-30),i+1));
+      if(p<1) anim=requestAnimationFrame(step); else { setTimeout(()=>{fxL.clearLayers();res();},250); } };
+    anim=requestAnimationFrame(step); });
+}
+function focus(t){
+  const a=coordOf(cityOf(t.from)), b=coordOf(cityOf(t.to)); if(!a||!b){toast('这段行程的城市坐标还没解析出来');return;}
+  map.flyToBounds(L.latLngBounds([a,b]),{...fitPad(),maxZoom:9,duration:.6}); setTimeout(()=>runAlong(t),650);
+  if (isMobile()) setSheet('mini');
+}
 
-  function load() {
-    herCity = localStorage.getItem(HER_CITY_KEY) || '杭州';
-    document.getElementById('herCity').value = herCity;
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        trips = JSON.parse(raw);
-        isSample = localStorage.getItem(SAMPLE_FLAG) === '1';
-        // migrate: drop unused fields quietly
-        trips = trips.map(t => ({
-          id: t.id || uid(),
-          date: t.date || '',
-          from: t.from || '',
-          to: t.to || t.place || '',
-          note: t.note || '',
-          fromCoords: t.fromCoords || null,
-          toCoords: t.toCoords || t.placeCoords || null
-        })).filter(t => t.from && t.to);
-        return;
-      }
-    } catch (e) {}
-    // try migrate from v1
-    try {
-      const v1 = localStorage.getItem('ldr-trip-map-v1');
-      if (v1) {
-        const old = JSON.parse(v1);
-        trips = old.map(t => ({
-          id: t.id || uid(),
-          date: t.date || '',
-          from: t.from || '',
-          to: t.to || t.place || '',
-          note: t.note || '',
-          fromCoords: t.fromCoords || null,
-          toCoords: t.toCoords || t.placeCoords || null
-        })).filter(t => t.from && t.to);
-        if (trips.length) {
-          isSample = localStorage.getItem('ldr-trip-map-is-sample') === '1';
-          persist();
-          return;
-        }
-      }
-    } catch (e) {}
-    trips = JSON.parse(JSON.stringify(DEMO));
-    isSample = true;
-    persist();
-  }
+/* ---------- playback ---------- */
+let playing=false;
+function setP(){ const r=$('#pR'), all=sorted(), i=+r.value, mx=+r.max||0;
+  r.style.setProperty('--p', (mx?i/mx*100:100)+'%');
+  if (upto<0 || !all.length){ $('#pT').textContent='全部行程'; $('#pS').textContent = all.length?`${fmtD(all[0].date)} — ${fmtD(all.at(-1).date)}`:'暂无'; }
+  else { const t=all[i]; $('#pT').textContent=`${cityOf(t.from)} → ${cityOf(t.to)}`; $('#pS').textContent=`${fmtD(t.date)}${t.train?' · '+t.train:''} · ${i+1}/${all.length}`; }
+}
+$('#pR').oninput=e=>{ stopPlay(); const v=+e.target.value; upto = v>=+e.target.max ? -1 : v; render(); };
+const ICO_PLAY='<path d="M7 4.5v15l13-7.5z"/>', ICO_PAUSE='<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>';
+function stopPlay(){ playing=false; $('#pIco').innerHTML=ICO_PLAY; }
+$('#pBtn').onclick=async()=>{
+  if(playing){stopPlay();return;}
+  const all=sorted(); if(!all.length) return;
+  playing=true; $('#pIco').innerHTML=ICO_PAUSE; if(isMobile()) setSheet('mini');
+  let i = (upto<0 || upto>=all.length-1) ? 0 : upto+1;
+  fitAll();
+  for(; i<all.length && playing; i++){ upto=i; $('#pR').value=i; render(); await runAlong(all[i], 900); }
+  if(playing){ upto=-1; render(); } stopPlay();
+};
 
-  function persist() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(trips));
-    localStorage.setItem(SAMPLE_FLAG, isSample ? '1' : '0');
-    localStorage.setItem(HER_CITY_KEY, herCity);
-  }
+/* ---------- forms ---------- */
+const open = id => $(id).classList.add('open'), close = el => el.closest('.mo').classList.remove('open');
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>close(b));
+document.querySelectorAll('.mo').forEach(m=>m.onclick=e=>{if(e.target===m)m.classList.remove('open');});
+function openAdd(t){
+  $('#aTitle').textContent = t?'编辑行程':'记一程';
+  $('#fId').value=t?.id||''; $('#fDate').value=t?.date||new Date().toISOString().slice(0,10);
+  $('#fFrom').value=t?.from||home||''; $('#fTo').value=t?.to||her||''; $('#fTrain').value=t?.train||''; $('#fNote').value=t?.note||'';
+  open('#mAdd'); setTimeout(()=>$('#fFrom').focus(),50);
+}
+$('#bAdd').onclick=()=>openAdd();
+$('#fSwap').onclick=()=>{const a=$('#fFrom').value; $('#fFrom').value=$('#fTo').value; $('#fTo').value=a;};
+$('#fAdd').onsubmit=e=>{ e.preventDefault();
+  const t={id:$('#fId').value||uid(),date:$('#fDate').value,from:$('#fFrom').value.trim(),to:$('#fTo').value.trim(),train:$('#fTrain').value.trim(),note:$('#fNote').value.trim()};
+  if(isSample){trips=[];isSample=false;}
+  const i=trips.findIndex(x=>x.id===t.id); i>=0?trips[i]=t:trips.push(t);
+  save(); upto=-1; render(); close($('#fAdd')); toast('已保存'); focus(t); resolveUnknown();
+};
+['#cHome','#cHer'].forEach(s=>{ const el=$(s); el.onchange=()=>{ home=$('#cHome').value.trim(); her=$('#cHer').value.trim(); save(); render(); }; el.onkeydown=e=>{if(e.key==='Enter')el.blur();}; });
+$('#bClear').onclick=()=>{ if(trips.length && confirm('清空全部行程？不可撤销。')){trips=[];isSample=false;save();upto=-1;render();} };
+$('#bFit').onclick=()=>{ upto=-1; render(true); };
 
-  async function geocodeCity(name) {
-    if (!name || !String(name).trim()) return null;
-    const key = normCity(name);
-    const cache = loadGeoCache();
-    if (cache[key]) return cache[key];
+/* ---------- import / export ---------- */
+$('#bImp').onclick=()=>open('#mImp'); $('#bExp').onclick=()=>open('#mExp');
+const drop=$('#drop'), file=$('#file');
+drop.onclick=()=>file.click();
+drop.ondragover=e=>{e.preventDefault();drop.classList.add('hov');}; drop.ondragleave=()=>drop.classList.remove('hov');
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove('hov'); e.dataTransfer.files[0]&&doImport(e.dataTransfer.files[0]);};
+file.onchange=()=>{file.files[0]&&doImport(file.files[0]); file.value='';};
+function parseCSV(text){
+  text=text.replace(/^\uFEFF/,''); const rows=[]; let row=[],f='',q=false;
+  for(let i=0;i<text.length;i++){const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){f+='"';i++;} else q=false; } else f+=c; continue; }
+    if(c==='"') q=true; else if(c===','||c==='\t'){row.push(f);f='';} else if(c==='\n'||c==='\r'){ if(c==='\r'&&text[i+1]==='\n')i++; row.push(f);f=''; if(row.some(x=>x.trim()))rows.push(row); row=[]; } else f+=c; }
+  row.push(f); if(row.some(x=>x.trim())) rows.push(row);
+  if(!rows.length) return [];
+  const MAP={date:'date',日期:'date',乘车日期:'date',出发日期:'date',from:'from',出发:'from',出发站:'from',出发城市:'from',发站:'from',to:'to',到达:'to',到达站:'to',到达城市:'to',到站:'to',train:'train',车次:'train',note:'note',备注:'note'};
+  const h=rows[0].map(x=>x.trim()), hasH=h.some(x=>MAP[x]||MAP[x.toLowerCase()]);
+  const cols = hasH ? h.map(x=>MAP[x]||MAP[x.toLowerCase()]||'') : ['date','from','to','train','note'];
+  return rows.slice(hasH?1:0).map(r=>{const o={}; cols.forEach((c,i)=>{ if(c) o[c]=(r[i]||'').trim(); }); return o;});
+}
+function normDate(d){ d=String(d||'').trim().replace(/[年/.]/g,'-').replace(/月/,'-').replace(/日.*$/,'').split(/[ T]/)[0]; const m=d.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); return m?`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`:''; }
+async function doImport(f){
+  const text=await f.text(); let rows=[];
+  try{
+    if(/\.json$/i.test(f.name)||/^\s*[\[{]/.test(text)){ const d=JSON.parse(text); rows=Array.isArray(d)?d:(d.trips||[]); if(d.home)home=d.home; if(d.her)her=d.her; }
+    else rows=parseCSV(text);
+  }catch(e){toast('解析失败：'+e.message);return;}
+  const items=rows.map(r=>({id:uid(),date:normDate(r.date),from:String(r.from||'').trim(),to:String(r.to||'').trim(),train:String(r.train||'').trim(),note:String(r.note||'').trim()})).filter(t=>t.date&&t.from&&t.to);
+  if(!items.length){toast('没有找到有效行（需要 date, from, to）');return;}
+  if(isSample){trips=[];isSample=false;}
+  const sig=t=>[t.date,cityOf(t.from),cityOf(t.to),t.train].join('|'), have=new Set(trips.map(sig));
+  const add=items.filter(t=>!have.has(sig(t))); trips.push(...add);
+  save(); upto=-1; close(drop); $('#cHome').value=home; $('#cHer').value=her; render(true);
+  toast(`导入 ${add.length} 段${items.length-add.length?`，跳过重复 ${items.length-add.length}`:''}`); resolveUnknown();
+}
+function dl(name,content,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+const csvEsc=v=>{v=String(v??'');return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+$('#eCsv').onclick=()=>dl('trips.csv','\uFEFFdate,from,to,train,note\n'+sorted().map(t=>['date','from','to','train','note'].map(k=>csvEsc(t[k])).join(',')).join('\n'),'text/csv;charset=utf-8');
+$('#eJson').onclick=()=>dl('trips.json',JSON.stringify({version:3,home,her,trips:sorted().map(({date,from,to,train,note})=>({date,from,to,train,note}))},null,2),'application/json');
+$('#bTpl').onclick=()=>dl('trip-template.csv','\uFEFFdate,from,to,train,note\n2025-03-14,上海虹桥,杭州东,G7311,\n2025-03-16,杭州东,上海虹桥,G7368,\n','text/csv;charset=utf-8');
 
-    const wait = Math.max(0, 1100 - (Date.now() - lastGeocodeAt));
-    if (wait) await new Promise(r => setTimeout(r, wait));
-    lastGeocodeAt = Date.now();
+/* ---------- toast & sheet ---------- */
+function toast(m){const t=document.createElement('div');t.className='toast glass';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2400);}
+const panel=$('#panel');
+function setSheet(s){ panel.classList.remove('full','mini'); if(s!=='half') panel.classList.add(s); }
+let sy=null,sState='half';
+$('#grab').addEventListener('pointerdown',e=>{sy=e.clientY; $('#grab').setPointerCapture(e.pointerId);});
+$('#grab').addEventListener('pointerup',e=>{ if(sy===null)return; const dy=e.clientY-sy; sy=null;
+  const order=['mini','half','full']; let i=order.indexOf(panel.classList.contains('full')?'full':panel.classList.contains('mini')?'mini':'half');
+  if(Math.abs(dy)<8) i=(i+1)%3; else i=Math.max(0,Math.min(2,i+(dy<0?1:-1))); setSheet(order[i]); });
 
-    const url = `${NOMINATIM}?q=${encodeURIComponent(name)}&format=json&limit=1&accept-language=zh`;
-    try {
-      const res = await fetch(url, { headers: { Accept: 'application/json' } });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      if (data && data[0]) {
-        const coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-        cache[key] = coords;
-        saveGeoCache(cache);
-        return coords;
-      }
-    } catch (e) {
-      console.warn('geocode fail', name, e);
-    }
-    return null;
-  }
-
-  async function ensureCoords(trip, statusCb) {
-    if (trip.from && !trip.fromCoords) {
-      if (statusCb) statusCb('解析：' + trip.from);
-      trip.fromCoords = await geocodeCity(trip.from);
-    }
-    if (trip.to && !trip.toCoords) {
-      if (statusCb) statusCb('解析：' + trip.to);
-      trip.toCoords = await geocodeCity(trip.to);
-    }
-    return trip;
-  }
-
-  async function geocodeAllMissing() {
-    const need = trips.filter(t => (t.from && !t.fromCoords) || (t.to && !t.toCoords));
-    if (!need.length) return;
-    const bar = document.getElementById('geocodeBar');
-    const text = document.getElementById('geocodeText');
-    bar.classList.add('show');
-    for (let i = 0; i < need.length; i++) {
-      text.textContent = `正在解析坐标… (${i + 1}/${need.length})`;
-      await ensureCoords(need[i], (m) => { text.textContent = m; });
-      persist();
-      renderMap();
-    }
-    bar.classList.remove('show');
-    toast('地理编码完成');
-  }
-
-  function initMap() {
-    map = L.map('map', { zoomControl: true }).setView([32.5, 110], 4);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    }).addTo(map);
-    markersLayer = L.layerGroup().addTo(map);
-    linesLayer = L.layerGroup().addTo(map);
-  }
-
-  function pinIcon(label, toHer) {
-    return L.divIcon({
-      className: 'custom-pin',
-      html: `<div class="pin-dot${toHer ? ' her-pin' : ''}"><span>${escapeHtml(label)}</span></div>`,
-      iconSize: [26, 26],
-      iconAnchor: [13, 26],
-      popupAnchor: [0, -26]
-    });
-  }
-
-  function renderMap() {
-    markersLayer.clearLayers();
-    linesLayer.clearLayers();
-    const sorted = [...trips].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-    const all = [];
-
-    sorted.forEach((trip, idx) => {
-      const toHer = isToHer(trip);
-      const n = String(idx + 1);
-      if (trip.fromCoords) {
-        const m = L.marker(trip.fromCoords, { icon: pinIcon(n, false) });
-        m.bindPopup(`<strong>${escapeHtml(trip.from)} → ${escapeHtml(trip.to)}</strong><br>${escapeHtml(formatDateCN(trip.date))}${trip.note ? '<br>' + escapeHtml(trip.note) : ''}`);
-        m.on('click', () => highlightTrip(trip.id, false));
-        markersLayer.addLayer(m);
-        all.push(trip.fromCoords);
-      }
-      if (trip.toCoords) {
-        const m = L.marker(trip.toCoords, { icon: pinIcon(n, toHer) });
-        m.bindPopup(`<strong>${escapeHtml(trip.from)} → ${escapeHtml(trip.to)}</strong><br>${escapeHtml(formatDateCN(trip.date))}${trip.note ? '<br>' + escapeHtml(trip.note) : ''}`);
-        m.on('click', () => highlightTrip(trip.id, false));
-        markersLayer.addLayer(m);
-        all.push(trip.toCoords);
-      }
-      if (trip.fromCoords && trip.toCoords) {
-        L.polyline([trip.fromCoords, trip.toCoords], {
-          color: toHer ? '#d4a574' : '#5b9fd4',
-          weight: 2.5,
-          opacity: 0.8
-        }).addTo(linesLayer);
-      }
-    });
-
-    if (all.length) {
-      try { map.fitBounds(L.latLngBounds(all).pad(0.2)); } catch (e) {}
-    }
-  }
-
-  function focusTrip(id) {
-    const trip = trips.find(t => t.id === id);
-    if (!trip) return;
-    const pts = [];
-    if (trip.fromCoords) pts.push(trip.fromCoords);
-    if (trip.toCoords) pts.push(trip.toCoords);
-    if (!pts.length) {
-      toast('尚无坐标，请检查城市名或等待编码');
-      return;
-    }
-    if (pts.length === 1) map.setView(pts[0], 8, { animate: true });
-    else map.fitBounds(L.latLngBounds(pts).pad(0.35), { animate: true });
-  }
-
-  function updateStats() {
-    const herCount = trips.filter(isToHer).length;
-    document.getElementById('statHer').innerHTML = `${herCount}<small>次</small>`;
-    document.getElementById('statTotal').textContent = String(trips.length);
-
-    const cities = new Set();
-    trips.forEach(t => {
-      if (t.from) cities.add(t.from.trim());
-      if (t.to) cities.add(t.to.trim());
-    });
-    const list = [...cities].sort((a, b) => a.localeCompare(b, 'zh'));
-    document.getElementById('statCityCount').textContent = String(list.length);
-    document.getElementById('statCityList').textContent = list.length ? list.join('、') : '—';
-    document.getElementById('tripCount').textContent = `${trips.length} 条`;
-    document.getElementById('sampleBanner').classList.toggle('show', isSample);
-  }
-
-  function highlightTrip(id, focus) {
-    activeId = id;
-    document.querySelectorAll('.trip-card').forEach(el => {
-      el.classList.toggle('active', el.dataset.id === id);
-    });
-    if (focus !== false) focusTrip(id);
-  }
-
-  function renderTimeline() {
-    const ul = document.getElementById('timeline');
-    const sorted = [...trips].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    if (!sorted.length) {
-      ul.innerHTML = `<li class="empty-state">还没有行程<br>点击「添加行程」或导入 CSV</li>`;
-      return;
-    }
-    ul.innerHTML = sorted.map(trip => {
-      const toHer = isToHer(trip);
-      return `<li class="trip-card${toHer ? ' to-her' : ''}${activeId === trip.id ? ' active' : ''}" data-id="${escapeHtml(trip.id)}">
-        <div class="trip-actions">
-          <button class="icon-btn" data-edit="${escapeHtml(trip.id)}" title="编辑">✎</button>
-          <button class="icon-btn" data-del="${escapeHtml(trip.id)}" title="删除">✕</button>
-        </div>
-        <div class="trip-date">${escapeHtml(formatDateCN(trip.date))}${toHer ? ' · 去她那里' : ''}</div>
-        <div class="trip-route">${escapeHtml(trip.from)} → ${escapeHtml(trip.to)}</div>
-        ${trip.note ? `<div class="trip-note">${escapeHtml(trip.note)}</div>` : ''}
-      </li>`;
-    }).join('');
-
-    ul.querySelectorAll('.trip-card').forEach(card => {
-      card.addEventListener('click', (e) => {
-        if (e.target.closest('.icon-btn')) return;
-        highlightTrip(card.dataset.id, true);
-      });
-    });
-    ul.querySelectorAll('[data-edit]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openEdit(btn.dataset.edit);
-      });
-    });
-    ul.querySelectorAll('[data-del]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteTrip(btn.dataset.del);
-      });
-    });
-  }
-
-  function refresh() {
-    updateStats();
-    renderTimeline();
-    renderMap();
-  }
-
-  function showForm(show) {
-    document.getElementById('formPanel').style.display = show ? 'flex' : 'none';
-  }
-
-  function resetForm() {
-    document.getElementById('tripForm').reset();
-    document.getElementById('editId').value = '';
-    document.getElementById('formTitle').textContent = '添加行程';
-    document.getElementById('fDate').value = todayStr();
-    if (herCity) document.getElementById('fTo').value = herCity;
-  }
-
-  function openAdd() {
-    resetForm();
-    showForm(true);
-    document.getElementById('fFrom').focus();
-  }
-
-  function openEdit(id) {
-    const trip = trips.find(t => t.id === id);
-    if (!trip) return;
-    document.getElementById('editId').value = trip.id;
-    document.getElementById('formTitle').textContent = '编辑行程';
-    document.getElementById('fDate').value = trip.date || '';
-    document.getElementById('fFrom').value = trip.from || '';
-    document.getElementById('fTo').value = trip.to || '';
-    document.getElementById('fNote').value = trip.note || '';
-    showForm(true);
-  }
-
-  async function saveTrip(e) {
-    e.preventDefault();
-    const id = document.getElementById('editId').value || uid();
-    const existing = trips.find(t => t.id === id);
-    const from = document.getElementById('fFrom').value.trim();
-    const to = document.getElementById('fTo').value.trim();
-    if (!from || !to) {
-      toast('请填写出发与到达城市');
-      return;
-    }
-    const trip = {
-      id,
-      date: document.getElementById('fDate').value,
-      from,
-      to,
-      note: document.getElementById('fNote').value.trim(),
-      fromCoords: existing && existing.from === from ? existing.fromCoords : null,
-      toCoords: existing && existing.to === to ? existing.toCoords : null
-    };
-
-    const bar = document.getElementById('geocodeBar');
-    const text = document.getElementById('geocodeText');
-    bar.classList.add('show');
-    text.textContent = '正在解析城市坐标…';
-    await ensureCoords(trip, (m) => { text.textContent = m; });
-    bar.classList.remove('show');
-
-    if (existing) {
-      trips[trips.findIndex(t => t.id === id)] = trip;
-      toast('已更新');
-    } else {
-      trips.push(trip);
-      toast('已添加');
-    }
-    isSample = false;
-    persist();
-    showForm(false);
-    refresh();
-    highlightTrip(trip.id, true);
-  }
-
-  function deleteTrip(id) {
-    if (!confirm('确定删除这条行程？')) return;
-    trips = trips.filter(t => t.id !== id);
-    if (!trips.length) isSample = false;
-    persist();
-    refresh();
-    toast('已删除');
-  }
-
-  function clearAll() {
-    if (!confirm('确定清空全部行程？')) return;
-    trips = [];
-    isSample = false;
-    persist();
-    refresh();
-    toast('已清空');
-  }
-
-  function clearSample() {
-    if (!isSample) return;
-    if (!confirm('清空示例数据？')) return;
-    trips = [];
-    isSample = false;
-    persist();
-    refresh();
-    toast('示例已清空');
-  }
-
-  function downloadBlob(filename, content, mime) {
-    const blob = new Blob([content], { type: mime });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  }
-
-  function tripsToCsv(list) {
-    const headers = ['date', 'from', 'to', 'note'];
-    const esc = (v) => {
-      const s = String(v == null ? '' : v);
-      if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
-      return s;
-    };
-    const rows = list.map(t => headers.map(h => esc(t[h] || '')).join(','));
-    return '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
-  }
-
-  function downloadTemplate() {
-    const sample = 'date,from,to,note\n2024-05-01,上海,杭州,周末过去\n2024-08-12,北京,杭州,\n';
-    downloadBlob('trip-template.csv', '\uFEFF' + sample, 'text/csv;charset=utf-8');
-    toast('模板已下载');
-  }
-
-  function exportJson() {
-    const data = {
-      version: 2,
-      herCity,
-      exportedAt: new Date().toISOString(),
-      trips: trips.map(({ id, date, from, to, note, fromCoords, toCoords }) =>
-        ({ id, date, from, to, note, fromCoords, toCoords }))
-    };
-    downloadBlob('trips.json', JSON.stringify(data, null, 2), 'application/json');
-    toast('JSON 已导出');
-  }
-
-  function exportCsv() {
-    downloadBlob('trips.csv', tripsToCsv(trips), 'text/csv;charset=utf-8');
-    toast('CSV 已导出');
-  }
-
-  function parseCsv(text) {
-    text = text.replace(/^\uFEFF/, '');
-    const lines = [];
-    let i = 0, field = '', row = [], inQ = false;
-    while (i < text.length) {
-      const c = text[i];
-      if (inQ) {
-        if (c === '"') {
-          if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
-          inQ = false; i++; continue;
-        }
-        field += c; i++; continue;
-      }
-      if (c === '"') { inQ = true; i++; continue; }
-      if (c === ',') { row.push(field); field = ''; i++; continue; }
-      if (c === '\n' || c === '\r') {
-        if (c === '\r' && text[i + 1] === '\n') i++;
-        row.push(field); field = '';
-        if (row.some(x => x.trim())) lines.push(row);
-        row = []; i++; continue;
-      }
-      field += c; i++;
-    }
-    if (field.length || row.length) {
-      row.push(field);
-      if (row.some(x => x.trim())) lines.push(row);
-    }
-    if (!lines.length) return [];
-
-    const headerMap = {
-      date: 'date', 日期: 'date',
-      from: 'from', 出发: 'from', 出发城市: 'from', 从: 'from',
-      to: 'to', 到达: 'to', 到达城市: 'to', 到: 'to',
-      note: 'note', 备注: 'note',
-      place: 'to', 地点: 'to'
-    };
-
-    const rawHeaders = lines[0].map(h => h.trim());
-    const looksLikeHeader = rawHeaders.some(h => headerMap[h.toLowerCase()] || headerMap[h]);
-    let start = 0;
-    let cols = ['date', 'from', 'to', 'note'];
-    if (looksLikeHeader) {
-      cols = rawHeaders.map(h => headerMap[h.toLowerCase()] || headerMap[h] || h.toLowerCase());
-      start = 1;
-    }
-
-    const out = [];
-    for (let r = start; r < lines.length; r++) {
-      const cells = lines[r];
-      const obj = { date: '', from: '', to: '', note: '' };
-      cols.forEach((c, idx) => {
-        if (['date', 'from', 'to', 'note'].includes(c)) {
-          obj[c] = (cells[idx] || '').trim();
-        }
-      });
-      if (!obj.date || !obj.from || !obj.to) continue;
-      out.push(obj);
-    }
-    return out;
-  }
-
-  function normalizeImported(raw) {
-    return {
-      id: raw.id || uid(),
-      date: String(raw.date || '').slice(0, 10),
-      from: raw.from || '',
-      to: raw.to || raw.place || '',
-      note: raw.note || '',
-      fromCoords: Array.isArray(raw.fromCoords) ? raw.fromCoords : null,
-      toCoords: Array.isArray(raw.toCoords) ? raw.toCoords : (Array.isArray(raw.placeCoords) ? raw.placeCoords : null)
-    };
-  }
-
-  async function doImport(file) {
-    const text = await file.text();
-    let items = [];
-    const name = (file.name || '').toLowerCase();
-    try {
-      if (name.endsWith('.json') || text.trim().startsWith('{') || text.trim().startsWith('[')) {
-        const data = JSON.parse(text);
-        if (data.herCity && !herCity) {
-          herCity = data.herCity;
-          document.getElementById('herCity').value = herCity;
-        }
-        const arr = Array.isArray(data) ? data : (data.trips || data.data || []);
-        items = arr.map(normalizeImported).filter(t => t.from && t.to);
-      } else {
-        items = parseCsv(text).map(normalizeImported);
-      }
-    } catch (e) {
-      toast('解析失败：' + e.message);
-      return;
-    }
-    if (!items.length) {
-      toast('未找到有效行程（需 date, from, to）');
-      return;
-    }
-    items.forEach(it => {
-      const idx = trips.findIndex(t => t.id === it.id);
-      if (idx >= 0) trips[idx] = { ...trips[idx], ...it };
-      else trips.push(it);
-    });
-    isSample = false;
-    persist();
-    refresh();
-    toast(`已导入 ${items.length} 条`);
-    await geocodeAllMissing();
-    refresh();
-  }
-
-  function bind() {
-    document.getElementById('btnAdd').addEventListener('click', openAdd);
-    document.getElementById('btnCancelForm').addEventListener('click', () => showForm(false));
-    document.getElementById('btnCancelForm2').addEventListener('click', () => showForm(false));
-    document.getElementById('tripForm').addEventListener('submit', saveTrip);
-    document.getElementById('btnClear').addEventListener('click', clearAll);
-    document.getElementById('btnClearSample').addEventListener('click', clearSample);
-    document.getElementById('btnTemplate').addEventListener('click', downloadTemplate);
-    document.getElementById('btnFit').addEventListener('click', () => {
-      const pts = [];
-      trips.forEach(t => {
-        if (t.fromCoords) pts.push(t.fromCoords);
-        if (t.toCoords) pts.push(t.toCoords);
-      });
-      if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(0.2));
-    });
-
-    document.getElementById('herCity').addEventListener('change', () => {
-      herCity = document.getElementById('herCity').value.trim();
-      persist();
-      refresh();
-      toast(herCity ? `她的城市：${herCity}` : '已清除「她的城市」');
-    });
-    document.getElementById('herCity').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        document.getElementById('herCity').blur();
-      }
-    });
-
-    document.getElementById('btnImport').addEventListener('click', () => {
-      pendingFile = null;
-      document.getElementById('fileInput').value = '';
-      document.getElementById('btnImportDo').disabled = true;
-      document.getElementById('importModal').classList.add('open');
-    });
-    document.getElementById('btnImportCancel').addEventListener('click', () => {
-      document.getElementById('importModal').classList.remove('open');
-    });
-    document.getElementById('fileInput').addEventListener('change', (e) => {
-      pendingFile = e.target.files[0] || null;
-      document.getElementById('btnImportDo').disabled = !pendingFile;
-    });
-    document.getElementById('btnImportDo').addEventListener('click', async () => {
-      if (!pendingFile) return;
-      document.getElementById('importModal').classList.remove('open');
-      await doImport(pendingFile);
-      pendingFile = null;
-    });
-
-    document.getElementById('btnExport').addEventListener('click', () => {
-      document.getElementById('exportModal').classList.add('open');
-    });
-    document.getElementById('btnExportCancel').addEventListener('click', () => {
-      document.getElementById('exportModal').classList.remove('open');
-    });
-    document.getElementById('btnExportCsv').addEventListener('click', () => {
-      exportCsv();
-      document.getElementById('exportModal').classList.remove('open');
-    });
-    document.getElementById('btnExportJson').addEventListener('click', () => {
-      exportJson();
-      document.getElementById('exportModal').classList.remove('open');
-    });
-
-    ['importModal', 'exportModal'].forEach(id => {
-      document.getElementById(id).addEventListener('click', (e) => {
-        if (e.target.id === id) e.target.classList.remove('open');
-      });
-    });
-  }
-
-  function boot() {
-    initMap();
-    load();
-    bind();
-    refresh();
-    setTimeout(() => geocodeAllMissing(), 400);
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot);
-  } else {
-    boot();
-  }
+/* ---------- boot ---------- */
+load(); $('#cHome').value=home; $('#cHer').value=her;
+render(false);
+setTimeout(()=>{ fitAll(); }, 50);
+resolveUnknown();
+window.__trip = { cityOf, coordOf };
 })();
 </script>
 </body>
