@@ -177,7 +177,7 @@ pre.code{background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:1
   </div>
   <div class="cities">
     <label class="chip"><span class="dot" style="background:var(--home)"></span><span class="l">我的城市</span><input id="cHome" placeholder="上海" /></label>
-    <label class="chip"><span class="dot" style="background:var(--her)"></span><span class="l">她的城市</span><input id="cHer" placeholder="郑州,徐州" style="width:110px" title="多个城市用逗号或顿号分隔" /></label>
+    <label class="chip"><span class="dot" style="background:var(--her)"></span><span class="l">她的城市</span><input id="cHer" placeholder="郑州,徐州,民权,开封" style="width:110px" title="多个城市用逗号或顿号分隔" /></label>
   </div>
   <div class="sec"><span id="sCount">0 段行程 · 0 座城市</span><span class="a" id="bClear">清空</span></div>
   <div class="list" id="list"></div>
@@ -284,7 +284,7 @@ async function resolveUnknown() {
 /* ---------- storage ---------- */
 function load() {
   home = localStorage.getItem(K.home) ?? '上海';
-  her = localStorage.getItem(K.her) ?? '郑州,徐州';
+  her = localStorage.getItem(K.her) ?? '郑州,徐州,民权,开封';
   // refresh demo once for multi-city her defaults
   if (localStorage.getItem(K.sample) !== '1' && localStorage.getItem('trip-map-sample') === '1') {
     trips = SAMPLE.map(t=>({...t})); isSample = true;
