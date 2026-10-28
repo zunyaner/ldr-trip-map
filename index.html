@@ -849,7 +849,7 @@
     },
     {
       id: 'demo-3',
-      date: '2025-12-25',
+      date: '2026-12-25',
       title: '计划中的北京冬日',
       from: '广州',
       to: '北京',
@@ -1153,10 +1153,9 @@
 
     const lastEl = document.getElementById('statLast');
     if (last) {
-      lastEl.innerHTML = formatDateCN(last.date).replace(/(\d+)年/, '$1年<br>') ;
-      // keep simple
-      lastEl.textContent = last.date;
-      lastEl.title = last.title || routeText(last);
+      const d = parseDate(last.date);
+      lastEl.textContent = d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` : last.date;
+      lastEl.title = `${formatDateCN(last.date)} · ${last.title || routeText(last)}`;
     } else {
       lastEl.textContent = '—';
     }
