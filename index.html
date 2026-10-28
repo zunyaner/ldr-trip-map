@@ -51,7 +51,7 @@ button,input,textarea{font:inherit;color:inherit}
 .meta .k{font-size:10.5px;color:var(--dim)} .meta .v{font-size:14px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cities{display:flex;gap:8px;padding:12px 20px 4px;flex-wrap:wrap}
 .chip{display:flex;align-items:center;gap:8px;padding:6px 10px 6px 8px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:12.5px;cursor:text}
-.chip input{width:64px;background:transparent;border:0;outline:0;font-weight:600}
+.chip input{width:72px;min-width:56px;background:transparent;border:0;outline:0;font-weight:600}
 .chip .l{color:var(--dim);font-size:11px}
 .sec{display:flex;justify-content:space-between;align-items:center;padding:16px 20px 8px;font-size:12px;color:var(--mut)}
 .sec .a{color:var(--dim);cursor:pointer;font-size:11.5px} .sec .a:hover{color:var(--tx)}
@@ -177,7 +177,7 @@ pre.code{background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:1
   </div>
   <div class="cities">
     <label class="chip"><span class="dot" style="background:var(--home)"></span><span class="l">我的城市</span><input id="cHome" placeholder="上海" /></label>
-    <label class="chip"><span class="dot" style="background:var(--her)"></span><span class="l">她的城市</span><input id="cHer" placeholder="杭州" /></label>
+    <label class="chip"><span class="dot" style="background:var(--her)"></span><span class="l">她的城市</span><input id="cHer" placeholder="郑州,徐州" style="width:110px" title="多个城市用逗号或顿号分隔" /></label>
   </div>
   <div class="sec"><span id="sCount">0 段行程 · 0 座城市</span><span class="a" id="bClear">清空</span></div>
   <div class="list" id="list"></div>
@@ -223,21 +223,21 @@ pre.code{background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:1
 (() => {
 'use strict';
 const $ = s => document.querySelector(s);
-const K = { data: 'trip-map-v3', home: 'trip-map-home', her: 'trip-map-her', geo: 'trip-map-geo', sample: 'trip-map-sample' };
+const K = { data: 'trip-map-v3', home: 'trip-map-home', her: 'trip-map-her', geo: 'trip-map-geo', sample: 'trip-map-sample-v2' };
 
 const SAMPLE = [
-  ['2025-01-24','上海虹桥','杭州东','G7311',''],['2025-01-26','杭州东','上海虹桥','G7368',''],
-  ['2025-02-14','上海虹桥','杭州东','G7501','情人节'],['2025-02-16','杭州东','上海虹桥','G7586',''],
-  ['2025-03-08','杭州东','上海虹桥','G7380','她来上海'],['2025-03-10','上海虹桥','杭州东','G7319',''],
-  ['2025-04-04','上海虹桥','杭州东','G7337','清明'],['2025-04-06','杭州东','上海虹桥','G7390',''],
-  ['2025-05-01','上海虹桥','成都东','G1974','一起去成都'],['2025-05-05','成都东','杭州东','G1972',''],['2025-05-05','杭州东','上海虹桥','G7552',''],
-  ['2025-06-20','杭州东','上海虹桥','G7356',''],['2025-06-22','上海虹桥','杭州东','G7343',''],
-  ['2025-08-09','上海虹桥','杭州东','G7525',''],['2025-08-10','杭州东','厦门北','G1653','海边'],['2025-08-14','厦门北','上海虹桥','G1658',''],
-  ['2025-10-01','上海虹桥','北京南','G2','国庆北京'],['2025-10-05','北京南','杭州东','G35',''],['2025-10-06','杭州东','上海虹桥','G7360',''],
-  ['2025-12-31','上海虹桥','杭州东','G7511','跨年'],['2026-01-02','杭州东','上海虹桥','G7588',''],
-  ['2026-03-21','杭州东','上海虹桥','G7372',''],['2026-03-23','上海虹桥','杭州东','G7323',''],
-  ['2026-05-01','上海虹桥','西安北','G1912','五一西安'],['2026-05-04','西安北','杭州东','G1916',''],['2026-05-05','杭州东','上海虹桥','G7356',''],
-  ['2026-09-26','上海虹桥','杭州东','G7517','']
+  ['2025-01-24','上海虹桥','郑州东','G1802',''],['2025-01-26','郑州东','上海虹桥','G1811',''],
+  ['2025-02-14','上海虹桥','徐州东','G122','情人节'],['2025-02-16','徐州东','上海虹桥','G123',''],
+  ['2025-03-08','郑州东','上海虹桥','G1804','她来上海'],['2025-03-10','上海虹桥','郑州东','G1815',''],
+  ['2025-04-04','上海虹桥','徐州东','G102','清明'],['2025-04-06','徐州东','上海虹桥','G103',''],
+  ['2025-05-01','上海虹桥','成都东','G1974','一起去成都'],['2025-05-05','成都东','郑州东','G2208',''],['2025-05-05','郑州东','上海虹桥','G1811',''],
+  ['2025-06-20','徐州东','上海虹桥','G129',''],['2025-06-22','上海虹桥','徐州东','G128',''],
+  ['2025-08-09','上海虹桥','郑州东','G1808',''],['2025-08-10','郑州东','厦门北','G1653','海边'],['2025-08-14','厦门北','上海虹桥','G1658',''],
+  ['2025-10-01','上海虹桥','北京南','G2','国庆北京'],['2025-10-05','北京南','徐州东','G105',''],['2025-10-06','徐州东','上海虹桥','G107',''],
+  ['2025-12-31','上海虹桥','郑州东','G1820','跨年'],['2026-01-02','郑州东','上海虹桥','G1821',''],
+  ['2026-03-21','徐州东','上海虹桥','G131',''],['2026-03-23','上海虹桥','徐州东','G130',''],
+  ['2026-05-01','上海虹桥','西安北','G1912','五一西安'],['2026-05-04','西安北','郑州东','G1832',''],['2026-05-05','郑州东','上海虹桥','G1817',''],
+  ['2026-09-26','上海虹桥','郑州东','G1836','']
 ].map((r,i)=>({id:'s'+i,date:r[0],from:r[1],to:r[2],train:r[3],note:r[4]}));
 
 let trips = [], home = '', her = '', isSample = false, geoCache = {};
@@ -257,6 +257,11 @@ function cityOf(raw) {
   return s;
 }
 const norm = s => cityOf(s);
+function parseCities(raw) {
+  return [...new Set(String(raw||'').split(/[,，、\s]+/).map(x=>cityOf(x.trim())).filter(Boolean))];
+}
+function herCities() { return parseCities(her); }
+function isHerCity(c) { const H = herCities(); return !!c && H.includes(cityOf(c)); }
 function coordOf(city) { return C[city] || geoCache[city] || null; }
 
 let lastNom = 0;
@@ -279,7 +284,13 @@ async function resolveUnknown() {
 /* ---------- storage ---------- */
 function load() {
   home = localStorage.getItem(K.home) ?? '上海';
-  her = localStorage.getItem(K.her) ?? '杭州';
+  her = localStorage.getItem(K.her) ?? '郑州,徐州';
+  // refresh demo once for multi-city her defaults
+  if (localStorage.getItem(K.sample) !== '1' && localStorage.getItem('trip-map-sample') === '1') {
+    trips = SAMPLE.map(t=>({...t})); isSample = true;
+    if (!localStorage.getItem(K.her) || localStorage.getItem(K.her) === '杭州') her = '郑州,徐州';
+    save(); return;
+  }
   const raw = localStorage.getItem(K.data);
   if (raw) { try { trips = JSON.parse(raw); isSample = localStorage.getItem(K.sample)==='1'; return; } catch(e){} }
   for (const old of ['ldr-trip-map-v2','ldr-trip-map-v1']) {
@@ -319,14 +330,15 @@ function visible(){ const s=sorted(); return upto<0 ? s : s.slice(0,upto+1); }
 
 function render(fit){
   arcL.clearLayers(); nodeL.clearLayers();
-  const vt = visible(), H = cityOf(her), M = cityOf(home);
+  const vt = visible(), Hs = herCities(), M = cityOf(home);
   const routes = new Map(), visits = new Map();
   for (const t of vt) {
     const a=cityOf(t.from), b=cityOf(t.to); if(!a||!b||a===b) continue;
     const pa=coordOf(a), pb=coordOf(b); if(!pa||!pb) continue;
     const key=[a,b].sort().join('|');
     const r = routes.get(key) || {a:[a,pa],b:[b,pb],n:0,ab:0,ba:0,her:false};
-    r.n++; (a<b? r.ab++ : r.ba++); if (b===H||a===H) r.her = r.her || ((a===M||b===M));
+    r.n++; (a<b? r.ab++ : r.ba++);
+    if ((Hs.includes(a)||Hs.includes(b)) && (a===M||b===M||Hs.includes(a)||Hs.includes(b))) r.her = true;
     routes.set(key,r);
     for (const c of [[a,pa],[b,pb]]) { const v=visits.get(c[0])||{p:c[1],n:0}; v.n++; visits.set(c[0],v); }
   }
@@ -342,7 +354,7 @@ function render(fit){
   }
   const maxV = Math.max(1,...[...visits.values()].map(v=>v.n));
   for (const [c,v] of visits) {
-    const isH=c===H, isM=c===M, col = isH?'#ff7a8a':isM?'#5cc8ff':'#ffc36b';
+    const isH=Hs.includes(c), isM=c===M, col = isH?'#ff7a8a':isM?'#5cc8ff':'#ffc36b';
     const rad = 4 + 8*Math.sqrt(v.n/maxV);
     L.circleMarker(v.p,{radius:rad*2.4,stroke:false,fillColor:col,fillOpacity:.1,interactive:false}).addTo(nodeL);
     L.circleMarker(v.p,{radius:rad*1.5,stroke:false,fillColor:col,fillOpacity:.18,interactive:false}).addTo(nodeL);
@@ -361,32 +373,34 @@ function fitAll(){
 /* ---------- stats & list ---------- */
 const fmtD = d => d ? d.replace(/^(\d{4})-(\d\d)-(\d\d)$/,(m,y,a,b)=>`${y}.${+a}.${+b}`) : '—';
 function stats(){
-  const H=cityOf(her), M=cityOf(home), all=sorted();
-  const toHer = all.filter(t=>cityOf(t.to)===H && H).length, toMe = all.filter(t=>cityOf(t.to)===M && M && cityOf(t.from)===H).length;
+  const Hs=herCities(), M=cityOf(home), all=sorted();
+  const toHer = all.filter(t=>isHerCity(t.to)).length;
+  const toMe = all.filter(t=>M && isHerCity(t.from) && cityOf(t.to)===M).length;
   let km=0; for (const t of all){const a=coordOf(cityOf(t.from)),b=coordOf(cityOf(t.to)); if(a&&b) km+=hav(a,b);}
   $('#sHer').innerHTML = `${toHer}<small>次</small>`; $('#sHome').innerHTML = `${toMe}<small>次</small>`;
   $('#sKm').textContent = km>=10000 ? (km/10000).toFixed(1)+' 万km' : Math.round(km).toLocaleString()+' km';
   $('#sFirst').textContent = fmtD(all[0]?.date); $('#sLast').textContent = fmtD(all.at(-1)?.date);
   const cs = new Set(all.flatMap(t=>[cityOf(t.from),cityOf(t.to)]).filter(Boolean));
   $('#sCount').textContent = `${all.length} 段行程 · ${cs.size} 座城市`;
-  $('#headline').innerHTML = H&&M ? `${M} <span style="color:var(--dim);font-weight:400">⇄</span> <b>${H}</b>` : '来回的路';
+  const herLabel = Hs.length ? Hs.join('、') : '';
+  $('#headline').innerHTML = herLabel&&M ? `${M} <span style="color:var(--dim);font-weight:400">⇄</span> <b>${herLabel}</b>` : '来回的路';
   const pr=$('#pR'); pr.max = Math.max(0,all.length-1); if (upto<0) pr.value = pr.max; setP();
 }
 const closedYears = new Set(JSON.parse(localStorage.getItem('trip-map-closed')||'[]'));
 function list(){
-  const H=cityOf(her), M=cityOf(home), all=sorted().reverse(), el=$('#list');
+  const Hs=herCities(), M=cityOf(home), all=sorted().reverse(), el=$('#list');
   if (!all.length){ el.innerHTML='<div class="empty">还没有行程<br>点右上角「记一程」或导入 12306 记录</div>'; return; }
   if (isSample) el.innerHTML = `<div class="empty" style="padding:6px 8px 10px;text-align:left">示例数据 · <a href="#" id="clrS" style="color:var(--her)">清空示例</a></div>`; else el.innerHTML='';
   const by = {}; for (const t of all){ const y=(t.date||'未知').slice(0,4); (by[y]=by[y]||[]).push(t); }
   for (const y of Object.keys(by).sort().reverse()){
-    const g=by[y], nh=g.filter(t=>cityOf(t.to)===H).length;
+    const g=by[y], nh=g.filter(t=>isHerCity(t.to)).length;
     const box=document.createElement('div'); box.className='yr'+(closedYears.has(y)?' closed':'');
     box.innerHTML = `<div class="yh"><span><b>${y}</b>${g.length} 段${nh?` · 去她那里 ${nh} 次`:''}</span><svg class="car" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></div><div class="ys"></div>`;
     box.querySelector('.yh').onclick=()=>{box.classList.toggle('closed'); box.classList.contains('closed')?closedYears.add(y):closedYears.delete(y); localStorage.setItem('trip-map-closed',JSON.stringify([...closedYears]));};
     const ys=box.querySelector('.ys');
     for (const t of g){
       const a=cityOf(t.from), b=cityOf(t.to), d=(t.date||'').slice(5).split('-');
-      const tag = b===H ? '<span class="badge her">去她那</span>' : (b===M && a===H) ? '<span class="badge home">她来</span>' : '';
+      const tag = isHerCity(b) ? '<span class="badge her">去她那</span>' : (b===M && isHerCity(a)) ? '<span class="badge home">她来</span>' : '';
       const sub = [t.train, (t.from!==a||t.to!==b)?`${t.from} → ${t.to}`:'', t.note].filter(Boolean).join(' · ');
       const it=document.createElement('div'); it.className='it';
       it.innerHTML = `<div class="d"><b>${d[1]?+d[1]:''}</b>${d[0]?+d[0]+'月':''}</div><div style="min-width:0"><div class="r"><span>${esc(a)}</span><i>→</i><span>${esc(b)}</span>${tag}</div>${sub?`<div class="s">${esc(sub)}</div>`:''}</div><button class="x" title="删除">✕</button>`;
@@ -447,7 +461,7 @@ document.querySelectorAll('.mo').forEach(m=>m.onclick=e=>{if(e.target===m)m.clas
 function openAdd(t){
   $('#aTitle').textContent = t?'编辑行程':'记一程';
   $('#fId').value=t?.id||''; $('#fDate').value=t?.date||new Date().toISOString().slice(0,10);
-  $('#fFrom').value=t?.from||home||''; $('#fTo').value=t?.to||her||''; $('#fTrain').value=t?.train||''; $('#fNote').value=t?.note||'';
+  $('#fFrom').value=t?.from||home||''; $('#fTo').value=t?.to||(herCities()[0]||her.split(/[,，、]/)[0]||'')||''; $('#fTrain').value=t?.train||''; $('#fNote').value=t?.note||'';
   open('#mAdd'); setTimeout(()=>$('#fFrom').focus(),50);
 }
 $('#bAdd').onclick=()=>openAdd();
